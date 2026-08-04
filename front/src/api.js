@@ -4,6 +4,8 @@
 */
 
 const API_BASE = process.env.REACT_APP_API_BASE || 'http://127.0.0.1:8000/api';
+// const API_BASE = 'https://api.sebastianrdz.com/api';
+export default API_BASE;
 
 // User login
 export async function login({ username, password }) {
@@ -33,8 +35,18 @@ export async function logout() {
 }
 
 // Get all reviews
-export async function fetchReviews() {
-  const res = await fetch(`${API_BASE}/reviews`);
+export async function fetchReviews(params = {}) {
+  const queryParams = new URLSearchParams();
+  
+  if (params.page) queryParams.append('page', params.page);
+  if (params.per_page) queryParams.append('per_page', params.per_page);
+  if (params.search) queryParams.append('search', params.search);
+  if (params.min_rating) queryParams.append('min_rating', params.min_rating);
+  if (params.year && params.year !== 'all') queryParams.append('year', params.year);
+  if (params.sort_by) queryParams.append('sort_by', params.sort_by);
+  
+  const url = `${API_BASE}/reviews${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
+  const res = await fetch(url);
   const data = await parseTextResponse(res);
   if (!res.ok) throw new Error(typeof data === 'string' ? data : (data.message || JSON.stringify(data)));
   return data;

@@ -8,9 +8,46 @@ use Illuminate\Http\Request;
 
 class ReviewController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $reviews = Review::with('movie')->orderByDesc('id')->get();
+        $perPage = $request->query('per_page', 15);
+        $perPage = min(max($perPage, 1), 10000); // Limit between 1 and 10000 (for "show all")
+        
+        $query = Review::with('movie');
+        
+        // Apply filters
+        if ($request->has('search')) {
+            $search = $request->query('search');
+            $query->whereHas('movie', function($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('director', 'like', "%{$search}%");
+            });
+        }
+        
+        if ($request->has('min_rating')) {
+            $minRating = $request->query('min_rating');
+            if ($minRating > 0) {
+                $query->where('rating', '>=', $minRating);
+            }
+        }
+        
+        if ($request->has('year')) {
+            $year = $request->query('year');
+            $query->whereHas('movie', function($q) use ($year) {
+                $q->where('release_year', $year);
+            });
+        }
+        
+        // Apply sorting
+        $sortBy = $request->query('sort_by', 'newest');
+        if ($sortBy === 'rating') {
+            $query->orderByDesc('rating')->orderByDesc('id');
+        } else {
+            $query->orderByDesc('created_at');
+        }
+        
+        $reviews = $query->paginate($perPage);
+        
         return response()->json($reviews);
     }
 
