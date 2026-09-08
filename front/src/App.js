@@ -1,37 +1,16 @@
-import React, { useEffect, useRef, useState, useMemo } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
+import { Outlet, useLocation } from 'react-router-dom';
 import './index.css';
-import {
-    fetchReviews,
-    login,
-    logout,
-    searchMovies,
-    createMovieFromTmdb,
-    createReview,
-    fetchFavoriteMovies,
-} from './api';
-import ProfileHeader from './components/ProfileHeader';
-import HorizontalCarousel from './components/HorizontalCarousel';
-import ReviewCard from './components/ReviewCard';
-import StarInput from './components/StarInput';
-import SearchFilterSort from './components/SearchFilterSort';
+import { login, logout, isAuthed } from './api';
+import NavBar from './components/NavBar';
+import ReviewModal from './components/ReviewModal';
 
-function App() {
-    const [reviews, setReviews] = useState([]);
-    const [paginationMeta, setPaginationMeta] = useState({
-        current_page: 1,
-        last_page: 1,
-        per_page: 10,
-        total: 0,
-    });
-    const [loading, setLoading] = useState(true);
-    const [err, setErr] = useState(null);
-    const [showRecentMovies, setShowRecentMovies] = useState(true);
-    const [showFavoriteMovies, setShowFavoriteMovies] = useState(true);
-    const [showFilters, setShowFilters] = useState(false);
+export default function App() {
+    const { pathname } = useLocation();
+    useEffect(() => {
+        window.scrollTo(0, 0);
+    }, [pathname]);
 
-    // Auth components
-    const [username] = useState('admin');
-    const [password, setPassword] = useState('');
     const [user, setUser] = useState(() => {
         try {
             return JSON.parse(localStorage.getItem('authUser'));
@@ -39,647 +18,64 @@ function App() {
             return null;
         }
     });
+    const authed = Boolean(user) && isAuthed();
 
-    // Review components
-    const [showForm, setShowForm] = useState(false);
-    const [query, setQuery] = useState('');
-    const [suggestions, setSuggestions] = useState([]);
-    const [selectedMovie, setSelectedMovie] = useState(null);
-    const [comment, setComment] = useState('');
-    const [rating, setRating] = useState(4);
-    const debounceRef = useRef(null);
-    const fetchDebounceRef = useRef(null);
-
-    // Login modal
     const [showLoginModal, setShowLoginModal] = useState(false);
+    const [password, setPassword] = useState('');
+    const [err, setErr] = useState(null);
 
-    // Fetch favorite movies
-    const [favoriteMovies, setFavoriteMovies] = useState([]);
-    const [isFavorite, setIsFavorite] = useState(false);
+    const [reviewModal, setReviewModal] = useState({ open: false, movie: null });
+    const [dataVersion, setDataVersion] = useState(0);
+    const bumpData = useCallback(() => setDataVersion((v) => v + 1), []);
 
-    // Sorting
-    const [sortBy, setSortBy] = useState('newest');
+    const openReviewModal = useCallback((movie = null) => setReviewModal({ open: true, movie }), []);
+    const closeReviewModal = useCallback(() => setReviewModal({ open: false, movie: null }), []);
 
-    // Filters
-    const [searchText, setSearchText] = useState('');
-    const [minRating, setMinRating] = useState(0);
-    const [selectedYear, setSelectedYear] = useState('all');
-
-    // Pagination
-    const [currentPage, setCurrentPage] = useState(1);
-    const [itemsPerPage, setItemsPerPage] = useState(() => {
-        return parseInt(localStorage.getItem('itemsPerPage')) || 10;
-    });
-
-    // Change items per page
-    function changeItemsPerPage(value) {
-        const numValue = parseInt(value);
-        setItemsPerPage(numValue);
-        localStorage.setItem('itemsPerPage', numValue);
-        setCurrentPage(1); // Reset to page 1
-    }
-
-    // Fetch reviews with filters and pagination
-    useEffect(() => {
-        let mounted = true;
-
-        // Debounce para no hacer muchas requests mientras escribes
-        clearTimeout(fetchDebounceRef.current);
-
-        fetchDebounceRef.current = setTimeout(async () => {
-            setLoading(true);
-            try {
-                const params = {
-                    page: currentPage,
-                    per_page: itemsPerPage,
-                    sort_by: sortBy,
-                };
-
-                if (searchText) params.search = searchText;
-                if (minRating > 0) params.min_rating = minRating;
-                if (selectedYear !== 'all') params.year = selectedYear;
-
-                const data = await fetchReviews(params);
-
-                if (mounted) {
-                    setReviews(Array.isArray(data.data) ? data.data : []);
-                    setPaginationMeta({
-                        current_page: data.current_page || 1,
-                        last_page: data.last_page || 1,
-                        per_page: data.per_page || itemsPerPage,
-                        total: data.total || 0,
-                        from: data.from || 0,
-                        to: data.to || 0,
-                    });
-                }
-            } catch (e) {
-                if (mounted) {
-                    setErr(String(e));
-                    setReviews([]);
-                }
-            } finally {
-                if (mounted) setLoading(false);
-            }
-        }, 300); // 300ms debounce
-
-        return () => {
-            mounted = false;
-            clearTimeout(fetchDebounceRef.current);
-        };
-    }, [currentPage, sortBy, searchText, minRating, selectedYear, itemsPerPage]);
-
-    // Fetch favorite movies (separate, no pagination)
-    useEffect(() => {
-        let mounted = true;
-        (async () => {
-            try {
-                const favs = await fetchFavoriteMovies();
-                if (mounted) setFavoriteMovies(Array.isArray(favs) ? favs : []);
-            } catch (e) {
-                console.error('Error fetching favorites:', e);
-            }
-        })();
-        return () => {
-            mounted = false;
-        };
-    }, []);
-
-    // Extract available years from all reviews (need separate endpoint or keep in memory)
-    // For now, we'll fetch without pagination to get all years
-    const [allYears, setAllYears] = useState([]);
-    useEffect(() => {
-        let mounted = true;
-        (async () => {
-            try {
-                // Fetch a large number to get all unique years
-                const data = await fetchReviews({ per_page: 1000 });
-                if (mounted) {
-                    const years = new Set();
-                    (data.data || []).forEach((r) => {
-                        const m = r.movie || {};
-                        const year = m.release_year || (m.release_date ? m.release_date.slice(0, 4) : null);
-                        if (year) years.add(year);
-                    });
-                    setAllYears(Array.from(years).sort((a, b) => b - a));
-                }
-            } catch (e) {
-                console.error('Error fetching years:', e);
-            }
-        })();
-        return () => {
-            mounted = false;
-        };
-    }, []); // Solo al cargar
-
-    // Clear all filters
-    function clearFilters() {
-        setSearchText('');
-        setMinRating(0);
-        setSelectedYear('all');
-        setCurrentPage(1);
-    }
-
-    // Reset to page 1 when filters change
-    useEffect(() => {
-        setCurrentPage(1);
-    }, [searchText, minRating, selectedYear, sortBy]);
-
-    // Scroll to top when page changes
-    // Scroll to top when page changes
-    useEffect(() => {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    }, [currentPage]);
-
-    // Auth handlers
     async function handleLogin(e) {
         e?.preventDefault();
         try {
-            const data = await login({ username, password });
-            setUser(data.user || { username });
-            localStorage.setItem('authUser', JSON.stringify(data.user || { username }));
+            const data = await login({ username: 'admin', password });
+            const u = data.user || { username: 'admin' };
+            setUser(u);
+            localStorage.setItem('authUser', JSON.stringify(u));
             setPassword('');
             setShowLoginModal(false);
+            setErr(null);
         } catch (error) {
-            setErr(String(error));
+            setErr(String(error.message || error));
         }
     }
 
-    // Auth handlers
     async function handleLogout() {
         try {
             await logout();
         } catch (error) {
-            console.error('Logout error:', error);
+            // ignore
         } finally {
             setUser(null);
             localStorage.removeItem('authUser');
         }
     }
 
-    // Review form handlers
-    function openForm() {
-        setShowForm(true);
-        setQuery('');
-        setSuggestions([]);
-        setSelectedMovie(null);
-        setComment('');
-        setRating(4);
-    }
-
-    // Debounced movie search
-    useEffect(() => {
-        if (!query) {
-            setSuggestions([]);
-            return;
-        }
-        clearTimeout(debounceRef.current);
-        debounceRef.current = setTimeout(async () => {
-            try {
-                const res = await searchMovies(query);
-                setSuggestions(Array.isArray(res) ? res : []);
-            } catch (e) {
-                console.error('searchMovies error', e);
-                setSuggestions([]);
-            }
-        }, 300);
-        return () => clearTimeout(debounceRef.current);
-    }, [query]);
-
-    // Handle selecting a movie suggestion
-    async function handleSelectSuggestion(item) {
-        try {
-            const movie = await createMovieFromTmdb(item.tmdb_id);
-            setSelectedMovie(movie);
-            setQuery('');
-            setSuggestions([]);
-        } catch (e) {
-            console.error('createFromTmdb error', e);
-            setErr(String(e));
-        }
-    }
-
-    // Handle review submission
-    async function handleSubmitReview(e) {
-        e.preventDefault();
-        if (!selectedMovie || !selectedMovie.id) {
-            setErr('Selecciona una película primero');
-            return;
-        }
-        try {
-            const payload = {
-                movie_id: selectedMovie.id,
-                rating: Number(rating),
-                comment: comment || null,
-            };
-            await createReview(payload);
-
-            // Reset form
-            setShowForm(false);
-            setSelectedMovie(null);
-            setComment('');
-            setRating(4);
-            setErr(null);
-
-            // Go to page 1 to see the new review (backend will re-fetch)
-            setCurrentPage(1);
-        } catch (e) {
-            console.error('createReview error', e);
-            setErr(String(e));
-        }
-    }
-
-    // Prepare recent movies for carousel (from reviews)
-    const recentMovies = [];
-    const seen = new Set();
-    for (const r of reviews) {
-        const m = r.movie || {};
-        const id = m.id || m.tmdb_id;
-        if (!id) continue;
-        if (!seen.has(id)) {
-            seen.add(id);
-            recentMovies.push({
-                id,
-                name: m.name || m.title,
-                poster_url: m.poster_url,
-                poster_path: m.poster_path,
-                release_year: m.release_year || (m.release_date ? m.release_date.slice(0, 4) : undefined),
-            });
-        }
-        if (recentMovies.length >= 8) break;
-    }
+    const ctx = {
+        user,
+        authed,
+        dataVersion,
+        openReviewModal,
+        openLogin: () => setShowLoginModal(true),
+        logout: handleLogout,
+    };
 
     return (
         <div className="min-h-screen bg-gray-950 text-gray-100 antialiased">
-            <ProfileHeader title="My Reviews" user={user} onOpenForm={openForm} />
+            <NavBar authed={authed} onLog={() => openReviewModal(null)} />
 
-            <div className="max-w-4xl mx-auto px-6 py-8">
-                {/* Recent Movies Carousel */}
-                <section className="mb-8">
-                    <div
-                        className="group -mx-2 flex justify-between items-center mb-1 cursor-pointer rounded-lg px-2 py-1.5 transition-colors hover:bg-gray-800/60"
-                        onClick={() => setShowRecentMovies(!showRecentMovies)}
-                    >
-                        <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-400 transition-colors group-hover:text-gray-200">
-                            Recently watched
-                        </h2>
-                        <span className="text-gray-500 text-xs transition-colors group-hover:text-gray-300">
-                            {showRecentMovies ? '▼' : '▶'}
-                        </span>
-                    </div>
-                    {showRecentMovies && <HorizontalCarousel items={recentMovies} />}
-                </section>
+            <main>
+                <Outlet context={ctx} />
+            </main>
 
-                {/* Favorite Movies Carousel */}
-                <section className="mb-8">
-                    <div
-                        className="group -mx-2 flex justify-between items-center mb-1 cursor-pointer rounded-lg px-2 py-1.5 transition-colors hover:bg-gray-800/60"
-                        onClick={() => setShowFavoriteMovies(!showFavoriteMovies)}
-                    >
-                        <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-400 transition-colors group-hover:text-gray-200">
-                            Favorite films
-                        </h2>
-                        <span className="text-gray-500 text-xs transition-colors group-hover:text-gray-300">
-                            {showFavoriteMovies ? '▼' : '▶'}
-                        </span>
-                    </div>
-                    {showFavoriteMovies && <HorizontalCarousel items={favoriteMovies} />}
-                </section>
-
-                {/* Form */}
-                {showForm && (
-                    <section className="mb-8 rounded-xl border border-gray-700/60 bg-gray-800 p-5 shadow-card">
-                        <h3 className="font-display text-lg font-semibold text-white mb-3">New review</h3>
-
-                        <div className="mb-3">
-                            <label className="text-xs font-semibold uppercase tracking-wide text-gray-400 block mb-1.5">
-                                Search movie
-                            </label>
-                            <input
-                                className="w-full px-3 py-2.5 rounded-lg bg-gray-900/60 text-white border border-gray-600 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
-                                value={query}
-                                onChange={(e) => setQuery(e.target.value)}
-                                placeholder="Type title..."
-                            />
-                            {suggestions.length > 0 && (
-                                <ul className="bg-gray-900 border border-gray-700 mt-2 rounded-lg max-h-56 overflow-auto shadow-lg">
-                                    {suggestions.map((s) => (
-                                        <li
-                                            key={s.tmdb_id}
-                                            className="px-3 py-2 hover:bg-gray-800 cursor-pointer transition-colors"
-                                            onClick={() => handleSelectSuggestion(s)}
-                                        >
-                                            <div className="text-sm font-medium">{s.title}</div>
-                                            <div className="text-xs text-gray-400">{s.release_year}</div>
-                                        </li>
-                                    ))}
-                                </ul>
-                            )}
-                        </div>
-
-                        {selectedMovie && (
-                            <div className="mb-4 rounded-lg bg-gray-900/50 px-3 py-2.5 text-gray-200">
-                                <div className="font-medium">
-                                    {selectedMovie.name}{' '}
-                                    {selectedMovie.release_year ? `(${selectedMovie.release_year})` : ''}
-                                </div>
-                                <div className="text-xs text-gray-400">Director: {selectedMovie.director || '—'}</div>
-                            </div>
-                        )}
-
-                        {selectedMovie && (
-                            <form onSubmit={handleSubmitReview}>
-                                <div className="mb-4">
-                                    <label className="text-xs font-semibold uppercase tracking-wide text-gray-400 block mb-1.5">
-                                        Comment
-                                    </label>
-                                    <textarea
-                                        className="w-full px-3 py-2.5 rounded-lg bg-gray-900/60 text-white border border-gray-600 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
-                                        rows="4"
-                                        value={comment}
-                                        onChange={(e) => setComment(e.target.value)}
-                                    />
-                                </div>
-
-                                <div className="flex flex-wrap items-center gap-4 mb-5">
-                                    <span className="text-xs font-semibold uppercase tracking-wide text-gray-400">
-                                        Rating
-                                    </span>
-                                    <StarInput value={rating} onChange={(v) => setRating(v)} size={26} />
-
-                                    <label className="flex items-center gap-2 text-sm font-medium text-gray-300 cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            className="w-4 h-4 accent-indigo-500"
-                                            checked={isFavorite}
-                                            onChange={(e) => setIsFavorite(e.target.checked)}
-                                        />
-                                        Favorite
-                                    </label>
-                                </div>
-
-                                <div className="flex gap-2">
-                                    <button
-                                        className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-gray-800"
-                                        type="submit"
-                                    >
-                                        Submit
-                                    </button>
-                                    <button
-                                        type="button"
-                                        className="rounded-lg bg-gray-700 px-4 py-2 text-sm font-semibold text-gray-200 transition-colors hover:bg-gray-600"
-                                        onClick={() => setShowForm(false)}
-                                    >
-                                        Cancelar
-                                    </button>
-                                </div>
-                            </form>
-                        )}
-
-                        {err && <div className="text-red-400 text-sm mt-3">{err}</div>}
-                    </section>
-                )}
-
-                {/* Search, Filter & Sort controls */}
-                <section className="mb-6 rounded-xl border border-gray-700/60 bg-gray-800 p-4 shadow-card">
-                    <div
-                        className="group flex items-center justify-between cursor-pointer"
-                        onClick={() => setShowFilters(!showFilters)}
-                    >
-                        <h3 className="font-display text-base font-semibold text-white">Search &amp; Filter</h3>
-                        <div className="flex items-center gap-2">
-                            {(searchText || minRating > 0 || selectedYear !== 'all' || sortBy !== 'newest') && (
-                                <button
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        clearFilters();
-                                        setSortBy('newest');
-                                    }}
-                                    className="text-xs px-3 py-1.5 bg-gray-700/60 hover:bg-gray-700 hover:text-white rounded-lg text-gray-300 transition-colors"
-                                >
-                                    Reset all
-                                </button>
-                            )}
-                            <span className="text-gray-500 text-xs transition-colors group-hover:text-gray-300">
-                                {showFilters ? '▼' : '▶'}
-                            </span>
-                        </div>
-                    </div>
-
-                    {showFilters && (
-                        <div className="mt-4">
-                            <SearchFilterSort
-                                searchText={searchText}
-                                setSearchText={setSearchText}
-                                sortBy={sortBy}
-                                setSortBy={setSortBy}
-                                minRating={minRating}
-                                setMinRating={setMinRating}
-                                selectedYear={selectedYear}
-                                setSelectedYear={setSelectedYear}
-                                allYears={allYears}
-                                total={paginationMeta.total}
-                                clearFilters={clearFilters}
-                            />
-                        </div>
-                    )}
-                </section>
-
-                {/* Items per page selector */}
-                {!loading && paginationMeta.total > 0 && (
-                    <div className="mb-4 flex items-center justify-between gap-3 text-sm flex-wrap">
-                        <div className="flex items-center gap-2">
-                            <span className="text-gray-400">Show:</span>
-                            <select
-                                value={itemsPerPage}
-                                onChange={(e) => changeItemsPerPage(e.target.value)}
-                                className="px-3 py-1.5 rounded-lg bg-gray-800 text-white border border-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
-                            >
-                                <option value="10">10 per page</option>
-                                <option value="20">25 per page</option>
-                                <option value="50">50 per page</option>
-                                <option value="9999">All ({paginationMeta.total})</option>
-                            </select>
-                        </div>
-
-                        {paginationMeta.last_page > 1 && (
-                            <div className="text-gray-500 text-xs">
-                                Page {paginationMeta.current_page} of {paginationMeta.last_page}
-                            </div>
-                        )}
-                    </div>
-                )}
-
-                {/* Reviews list */}
-                <section>
-                    {loading && (
-                        <div className="space-y-4 mt-4">
-                            {Array.from({ length: 4 }).map((_, i) => (
-                                <div
-                                    key={i}
-                                    className="flex gap-4 rounded-xl border border-gray-700/60 bg-gray-800 p-4"
-                                >
-                                    <div className="skeleton aspect-[2/3] w-20 sm:w-24 flex-shrink-0 rounded-lg" />
-                                    <div className="flex-1 space-y-2.5 py-1">
-                                        <div className="skeleton h-4 w-2/3" />
-                                        <div className="skeleton h-3 w-1/3" />
-                                        <div className="skeleton h-3 w-full mt-4" />
-                                        <div className="skeleton h-3 w-5/6" />
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-
-                    {!loading &&
-                        paginationMeta.total === 0 &&
-                        !searchText &&
-                        minRating === 0 &&
-                        selectedYear === 'all' && (
-                            <div className="rounded-xl border border-dashed border-gray-700 py-12 text-center">
-                                <div className="text-3xl mb-2">🎬</div>
-                                <div className="text-gray-400">No reviews yet.</div>
-                            </div>
-                        )}
-
-                    {!loading &&
-                        paginationMeta.total === 0 &&
-                        (searchText || minRating > 0 || selectedYear !== 'all') && (
-                            <div className="rounded-xl border border-dashed border-gray-700 py-12 text-center">
-                                <div className="text-gray-400 mb-3">No reviews match your filters</div>
-                                <button
-                                    onClick={clearFilters}
-                                    className="text-sm px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-white font-semibold transition-colors"
-                                >
-                                    Clear filters
-                                </button>
-                            </div>
-                        )}
-
-                    {!loading && reviews.length > 0 && (
-                        <>
-                            <div className="space-y-4 mt-4">
-                                {reviews.map((r) => (
-                                    <ReviewCard key={r.id} review={r} />
-                                ))}
-                            </div>
-
-                            {/* Pagination controls */}
-                            {paginationMeta.last_page > 1 && (
-                                <div className="mt-8 flex items-center justify-center gap-2 flex-wrap">
-                                    {/* Previous button */}
-                                    <button
-                                        onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                                        disabled={currentPage === 1}
-                                        className={`px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${
-                                            currentPage === 1
-                                                ? "border-gray-800 bg-gray-800/50 text-gray-600 cursor-not-allowed"
-                                                : "border-gray-700 bg-gray-800 text-white hover:bg-gray-700"
-                                        }`}
-                                    >
-                                        ← Previous
-                                    </button>
-
-                                    {/* Page numbers */}
-                                    <div className="flex gap-1 flex-wrap">
-                                        {/* First page */}
-                                        {currentPage > 3 && (
-                                            <>
-                                                <button
-                                                    onClick={() => setCurrentPage(1)}
-                                                    className="px-3 py-2 rounded-lg border border-gray-700 bg-gray-800 text-sm font-medium text-white hover:bg-gray-700 transition-colors"
-                                                >
-                                                    1
-                                                </button>
-                                                {currentPage > 4 && (
-                                                    <span className="px-2 py-2 text-gray-500">...</span>
-                                                )}
-                                            </>
-                                        )}
-
-                                        {/* Page range around current */}
-                                        {Array.from({ length: paginationMeta.last_page }, (_, i) => i + 1)
-                                            .filter((page) => {
-                                                return (
-                                                    page === currentPage ||
-                                                    page === currentPage - 1 ||
-                                                    page === currentPage + 1 ||
-                                                    page === currentPage - 2 ||
-                                                    page === currentPage + 2
-                                                );
-                                            })
-                                            .map((page) => (
-                                                <button
-                                                    key={page}
-                                                    onClick={() => setCurrentPage(page)}
-                                                    className={`px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${
-                                                        currentPage === page
-                                                            ? 'border-indigo-500 bg-indigo-600 text-white font-semibold'
-                                                            : 'border-gray-700 bg-gray-800 text-white hover:bg-gray-700'
-                                                    }`}
-                                                >
-                                                    {page}
-                                                </button>
-                                            ))}
-
-                                        {/* Last page */}
-                                        {currentPage < paginationMeta.last_page - 2 && (
-                                            <>
-                                                {currentPage < paginationMeta.last_page - 3 && (
-                                                    <span className="px-2 py-2 text-gray-500">...</span>
-                                                )}
-                                                <button
-                                                    onClick={() => setCurrentPage(paginationMeta.last_page)}
-                                                    className="px-3 py-2 rounded-lg border border-gray-700 bg-gray-800 text-sm font-medium text-white hover:bg-gray-700 transition-colors"
-                                                >
-                                                    {paginationMeta.last_page}
-                                                </button>
-                                            </>
-                                        )}
-                                    </div>
-
-                                    {/* Next button */}
-                                    <button
-                                        onClick={() => setCurrentPage((p) => Math.min(paginationMeta.last_page, p + 1))}
-                                        disabled={currentPage === paginationMeta.last_page}
-                                        className={`px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${
-                                            currentPage === paginationMeta.last_page
-                                                ? 'border-gray-800 bg-gray-800/50 text-gray-600 cursor-not-allowed'
-                                                : 'border-gray-700 bg-gray-800 text-white hover:bg-gray-700'
-                                        }`}
-                                    >
-                                        Next →
-                                    </button>
-                                </div>
-                            )}
-
-                            {/* Page info */}
-                            <div className="mt-4 text-center text-sm text-gray-400">
-                                {paginationMeta.last_page === 1 && itemsPerPage >= 9999 ? (
-                                    <span>Showing all {paginationMeta.total} reviews</span>
-                                ) : paginationMeta.last_page > 1 ? (
-                                    <span>
-                                        Page {paginationMeta.current_page} of {paginationMeta.last_page} • Showing{' '}
-                                        {paginationMeta.from || 0}-{paginationMeta.to || 0} of {paginationMeta.total}{' '}
-                                        reviews
-                                    </span>
-                                ) : paginationMeta.total > 0 ? (
-                                    <span>
-                                        Showing {paginationMeta.total} review
-                                        {paginationMeta.total !== 1 ? 's' : ''}
-                                    </span>
-                                ) : null}
-                            </div>
-                        </>
-                    )}
-                </section>
-            </div>
-
-            {/* Info footer */}
             <footer className="mt-8 border-t border-gray-800 py-6 text-center">
-                <button
-                    className="text-sm text-gray-500 transition-colors hover:text-gray-300"
-                    onClick={handleLogout}
-                >
+                <button className="text-sm text-gray-500 transition-colors hover:text-gray-300" onClick={handleLogout}>
                     {new Date().getFullYear()}
                 </button>
                 <span className="mx-2 text-gray-700">·</span>
@@ -691,17 +87,20 @@ function App() {
                 </button>
             </footer>
 
-            {/* Login Modal */}
+            <ReviewModal
+                open={reviewModal.open}
+                movie={reviewModal.movie}
+                onClose={closeReviewModal}
+                onCreated={bumpData}
+            />
+
             {showLoginModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                    <div
-                        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
-                        onClick={() => setShowLoginModal(false)}
-                    />
+                    <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setShowLoginModal(false)} />
                     <div className="relative z-10 w-full max-w-sm rounded-xl border border-gray-700/60 bg-gray-800 p-6 text-white shadow-card-hover">
                         <form onSubmit={handleLogin} className="space-y-3">
                             <input
-                                className="w-full px-3 py-2.5 rounded-lg bg-gray-900/60 text-white border border-gray-600 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                                className="w-full rounded-lg border border-gray-600 bg-gray-900/60 px-3 py-2.5 text-white placeholder-gray-500 transition-all focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                                 placeholder="password"
                                 type="password"
                                 value={password}
@@ -717,12 +116,10 @@ function App() {
                                 </button>
                             </div>
                         </form>
-                        {err && <div className="text-red-400 text-sm mt-3">{err}</div>}
+                        {err && <div className="mt-3 text-sm text-red-400">{err}</div>}
                     </div>
                 </div>
             )}
         </div>
     );
 }
-
-export default App;

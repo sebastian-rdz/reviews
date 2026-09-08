@@ -13,7 +13,17 @@ class Review extends Model
     protected $fillable = [
         'movie_id',
         'rating',
+        'watched_on',
+        'liked',
+        'rewatch',
         'comment',
+    ];
+
+    protected $casts = [
+        'rating' => 'float',
+        'watched_on' => 'date:Y-m-d',
+        'liked' => 'boolean',
+        'rewatch' => 'boolean',
     ];
 
     public function movie()

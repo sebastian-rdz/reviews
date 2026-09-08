@@ -3,16 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Models\Movie;
+use App\Support\Tmdb;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Schema;
 
 class MovieController extends Controller
 {
     public function index()
     {
-        $movies = Movie::all();
-        return response()->json($movies);
+        return response()->json(Movie::all());
     }
 
     public function favorites()
@@ -21,119 +19,71 @@ class MovieController extends Controller
             ->orderByDesc('id')
             ->take(5)
             ->get();
-            
+
         return response()->json($movies);
     }
 
     public function store(Request $request)
     {
-        $request->validate([
+        $validated = $request->validate([
             'name' => 'required|string',
-            'director' => 'required|string', 
-            'release_year' => 'required|integer' . date('Y'),
+            'director' => 'required|string',
+            'release_year' => 'required|integer|min:1870|max:'.(date('Y') + 5),
             'poster_path' => 'nullable|string',
-            'poster_url' => 'nullable|url'
+            'poster_url' => 'nullable|url',
         ]);
 
-        $data = $request->only(['name', 'director', 'release_year', 'poster_path', 'poster_url']);
-        if (empty($data['poster_url']) && !empty($data['poster_path'])) {
-            $data['poster_url'] = 'https://image.tmdb.org/t/p/w342/' . ltrim($data['poster_path'], '/');
+        if (empty($validated['poster_url']) && ! empty($validated['poster_path'])) {
+            $validated['poster_url'] = Tmdb::POSTER_BASE.'/'.ltrim($validated['poster_path'], '/');
         }
 
-        $movie = Movie::create($data);
+        $movie = Movie::create($validated);
+
         return response()->json($movie, 201);
     }
 
     public function search(Request $request)
     {
-        $request->validate([
-            'query' => 'required|string'
-        ]);
+        $request->validate(['query' => 'required|string']);
+        $query = $request->input('query');
 
-        $apiKey = env('TMDB_API_KEY');
-        if (!$apiKey) {
-            return response()->json(['error' => 'TMDB API key not configured'], 500);
+        if (Tmdb::configured()) {
+            return response()->json(Tmdb::search($query));
         }
 
-        $res = Http::get("https://api.themoviedb.org/3/search/movie", [
-            'api_key' => $apiKey,
-            'query' => $request->input('query'),
-            'page' => 1
-        ]);
+        // No TMDB key — fall back to searching films already in the library so the
+        // app stays usable offline.
+        $local = Movie::query()
+            ->where('name', 'like', "%{$query}%")
+            ->orderBy('name')
+            ->limit(20)
+            ->get()
+            ->map(fn ($m) => [
+                'id' => $m->id,
+                'tmdb_id' => $m->tmdb_id,
+                'title' => $m->name,
+                'name' => $m->name,
+                'director' => $m->director,
+                'release_year' => $m->release_year,
+                'poster_path' => $m->poster_path,
+                'poster_url' => $m->poster_url,
+                'local' => true,
+            ]);
 
-        if ($res->failed()) {
-            return response()->json(['error' => 'TMDB API request failed'], 500);
-        }
-
-        $results = $res->json()['results'];
-        
-        $mapped = array_map(function ($r) {
-            return [
-                'tmdb_id' => $r['id'] ?? null,
-                'title' => $r['title'] ?? ($r['name'] ?? ''),
-                'release_year' => !empty($r['release_date']) ? (int)substr($r['release_date'], 0, 4) : null,
-                'release_date' => $r['release_date'] ?? null,
-                'overview' => $r['overview'] ?? null,
-                'poster_path' => $r['poster_path'] ?? null,
-            ];
-        }, $results);
-
-        return response()->json(array_values($mapped));
+        return response()->json($local->values());
     }
 
     public function createFromTMDB(Request $request)
     {
-        $request->validate([
-            'tmdb_id' => 'required|integer'
-        ]);
+        $request->validate(['tmdb_id' => 'required|integer']);
+        $tmdbId = (int) $request->input('tmdb_id');
 
-        $tmdbId = $request->input('tmdb_id');
-        $apiKey = env('TMDB_API_KEY');
-        if (!$apiKey) {
-            return response()->json(['error' => 'TMDB API key not configured'], 500);
-        }
-
-        $res = Http::get("https://api.themoviedb.org/3/movie/{$tmdbId}", [
-            'api_key' => $apiKey,
-            'append_to_response' => 'credits'
-        ]);
-
-        if (! $res->ok()) {
+        $attrs = Tmdb::movie($tmdbId);
+        if ($attrs === null) {
             return response()->json(['error' => 'TMDB movie request failed'], 404);
         }
 
-        $data = $res->json();
-        $title = $data['title'] ?? ($data['name'] ?? '');
-        $release_year = null;
-        if (!empty($data['release_date'])) {
-            $release_year = (int)substr($data['release_date'], 0, 4);
-        }
-
-        $director = '';
-        foreach ($data['credits']['crew'] ?? [] as $crew) {
-            if (($crew['job'] ?? '') === 'Director') {
-                $director = $crew['name'];
-                break;
-            }
-        }
-
-        $poster_path = $data['poster_path'] ?? null;
-        $poster_url = $poster_path ? 'https://image.tmdb.org/t/p/w342/' . ltrim($poster_path, '/') : null;
-
-        $movie = Movie::updateOrCreate(
-            ['tmdb_id' => $tmdbId],
-            [
-                'name' => $title,
-                'release_year' => $release_year,
-                'director' => $director,
-                'poster_path' => $poster_path,
-                'poster_url' => $poster_url
-            ]
-        );
-
-        if (empty($movie->tmdb_id)) {
-            $movie->update(['tmdb_id' => $tmdbId]);
-        }
+        $movie = Movie::updateOrCreate(['tmdb_id' => $tmdbId], $attrs);
 
         return response()->json($movie, $movie->wasRecentlyCreated ? 201 : 200);
     }
@@ -141,6 +91,32 @@ class MovieController extends Controller
     public function show($id)
     {
         $movie = Movie::findOrFail($id);
-        return response()->json($movie);
+
+        // Lazily enrich records created before the detail fields existed.
+        if ($movie->tmdb_id && ($movie->overview === null || $movie->runtime === null || $movie->backdrop_url === null)) {
+            if ($attrs = Tmdb::movie((int) $movie->tmdb_id)) {
+                $movie->fill($attrs)->save();
+            }
+        }
+
+        $reviews = $movie->reviews()
+            ->orderByRaw('COALESCE(watched_on, date(created_at)) DESC')
+            ->orderByDesc('id')
+            ->get();
+
+        $rated = $reviews->whereNotNull('rating');
+
+        return response()->json([
+            'movie' => $movie,
+            'reviews' => $reviews->values(),
+            'in_watchlist' => $movie->watchlistItem()->exists(),
+            'stats' => [
+                'times_logged' => $reviews->count(),
+                'average_rating' => $rated->count() ? round($rated->avg('rating'), 2) : null,
+                'liked' => (bool) $reviews->firstWhere('liked', true),
+                'first_watched' => optional($reviews->last())->watched_on,
+                'last_watched' => optional($reviews->first())->watched_on,
+            ],
+        ]);
     }
 }
