@@ -89,7 +89,7 @@ export default function StarInput({ value = 4, onChange, size = 20, max = 5, rea
                 </svg>
 
                 <div style={{ width: `${fill}%`, height: size, overflow: 'hidden', position: 'absolute', left: 0, top: 0 }}>
-                    <svg viewBox="0 0 24 24" width={size} height={size} style={{ display: 'block' }} className="text-yellow-400">
+                    <svg viewBox="0 0 24 24" width={size} height={size} style={{ display: 'block' }} className="text-[#f5c518]">
                         <path fill="currentColor" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"
                         d="M12 .587l3.668 7.431L23.4 9.75l-5.7 5.56L18.9 24 12 19.897 5.1 24l1.2-8.69L.6 9.75l7.732-1.732z" />
                     </svg>

@@ -3,14 +3,61 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <meta name="theme-color" content="#0f1724" />
+    <meta name="theme-color" content="#0f131a" />
     <title>Reviews</title>
     <meta name="description" content="My personal movie reviews and favorites." />
     <meta property="og:title" content="Reviews" />
     <meta property="og:description" content="Personal movie reviews, favorite films and watched list." />
     <meta property="og:type" content="website" />
     <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],
+              display: ['"Bricolage Grotesque"', 'Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+            },
+            colors: {
+              // Cool cinema-dark neutrals (drop-in replacement for Tailwind's gray)
+              gray: {
+                50: '#f5f6f8',
+                100: '#e9ebf0',
+                200: '#cdd2dd',
+                300: '#a7afbf',
+                400: '#7f8799',
+                500: '#626a7d',
+                600: '#454c5c',
+                700: '#2b3240',
+                800: '#1c2230',
+                900: '#141922',
+                950: '#0f131a',
+              },
+              // Richer accent violet (drop-in replacement for Tailwind's indigo)
+              indigo: {
+                400: '#a99dff',
+                500: '#8b7dff',
+                600: '#6d5df6',
+                700: '#5a49d8',
+              },
+            },
+            boxShadow: {
+              card: '0 1px 2px rgba(0,0,0,0.3), 0 8px 24px -12px rgba(0,0,0,0.5)',
+              'card-hover': '0 2px 4px rgba(0,0,0,0.35), 0 16px 40px -16px rgba(0,0,0,0.65)',
+            },
+          },
+        },
+      };
+    </script>
   </head>
   <body>
     <div id="root"></div>

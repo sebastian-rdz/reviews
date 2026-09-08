@@ -1,5 +1,12 @@
 import React from 'react';
 
+const pill = (active) =>
+    `px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+        active
+            ? 'bg-indigo-600 text-white shadow-sm'
+            : 'bg-gray-700/60 text-gray-300 hover:bg-gray-700 hover:text-white'
+    }`;
+
 function SearchFilterSort({
     searchText,
     setSearchText,
@@ -40,7 +47,7 @@ function SearchFilterSort({
                     placeholder="Search by title or director"
                     value={searchText}
                     onChange={(e) => setSearchText(e.target.value)}
-                    className="w-full pl-10 pr-10 py-2 rounded bg-gray-700 text-white border border-gray-600 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                    className="w-full pl-10 pr-10 py-2.5 rounded-lg bg-gray-900/60 text-white border border-gray-600 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
                 />
                 {searchText && (
                     <button
@@ -66,17 +73,27 @@ function SearchFilterSort({
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                 {/* Sort by */}
                 <div>
-                    <label className="text-sm text-gray-300 block mb-2">Sort by</label>
+                    <label className="text-xs font-semibold uppercase tracking-wide text-gray-400 block mb-2">
+                        Sort by
+                    </label>
                     <div className="flex gap-2">
                         <button
                             onClick={() => setSortBy('newest')}
-                            className={`flex-1 px-3 py-1.5 rounded text-sm font-medium transition-colors ${sortBy === 'newest' ? 'bg-indigo-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}
+                            className={`flex-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                                sortBy === 'newest'
+                                    ? 'bg-indigo-600 text-white shadow-sm'
+                                    : 'bg-gray-700/60 text-gray-300 hover:bg-gray-700 hover:text-white'
+                            }`}
                         >
                             Newest
                         </button>
                         <button
                             onClick={() => setSortBy('rating')}
-                            className={`flex-1 px-3 py-1.5 rounded text-sm font-medium transition-colors ${sortBy === 'rating' ? 'bg-indigo-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}
+                            className={`flex-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                                sortBy === 'rating'
+                                    ? 'bg-indigo-600 text-white shadow-sm'
+                                    : 'bg-gray-700/60 text-gray-300 hover:bg-gray-700 hover:text-white'
+                            }`}
                         >
                             Rating
                         </button>
@@ -85,36 +102,23 @@ function SearchFilterSort({
 
                 {/* Rating filter */}
                 <div>
-                    <label className="text-sm text-gray-300 block mb-2">Min. rating</label>
+                    <label className="text-xs font-semibold uppercase tracking-wide text-gray-400 block mb-2">
+                        Min. rating
+                    </label>
                     <div className="flex gap-1.5 flex-wrap">
-                        <button
-                            onClick={() => setMinRating(0)}
-                            className={`px-2.5 py-1.5 rounded text-xs font-medium transition-colors ${minRating === 0 ? 'bg-indigo-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}
-                        >
+                        <button onClick={() => setMinRating(0)} className={pill(minRating === 0)}>
                             All
                         </button>
-                        <button
-                            onClick={() => setMinRating(3)}
-                            className={`px-2.5 py-1.5 rounded text-xs font-medium transition-colors ${minRating === 3 ? 'bg-indigo-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}
-                        >
+                        <button onClick={() => setMinRating(3)} className={pill(minRating === 3)}>
                             3+ ★
                         </button>
-                        <button
-                            onClick={() => setMinRating(4)}
-                            className={`px-2.5 py-1.5 rounded text-xs font-medium transition-colors ${minRating === 4 ? 'bg-indigo-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}
-                        >
+                        <button onClick={() => setMinRating(4)} className={pill(minRating === 4)}>
                             4+ ★
                         </button>
-                        <button
-                            onClick={() => setMinRating(4.5)}
-                            className={`px-2.5 py-1.5 rounded text-xs font-medium transition-colors ${minRating === 4.5 ? 'bg-indigo-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}
-                        >
+                        <button onClick={() => setMinRating(4.5)} className={pill(minRating === 4.5)}>
                             4.5+
                         </button>
-                        <button
-                            onClick={() => setMinRating(5)}
-                            className={`px-2.5 py-1.5 rounded text-xs font-medium transition-colors ${minRating === 5 ? 'bg-indigo-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}
-                        >
+                        <button onClick={() => setMinRating(5)} className={pill(minRating === 5)}>
                             5 ★
                         </button>
                     </div>
@@ -122,11 +126,11 @@ function SearchFilterSort({
 
                 {/* Year filter */}
                 <div>
-                    <label className="text-sm text-gray-300 block mb-2">Year</label>
+                    <label className="text-xs font-semibold uppercase tracking-wide text-gray-400 block mb-2">Year</label>
                     <select
                         value={selectedYear}
                         onChange={(e) => setSelectedYear(e.target.value)}
-                        className="w-full px-3 py-1.5 rounded bg-gray-700 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all text-sm"
+                        className="w-full px-3 py-2 rounded-lg bg-gray-900/60 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all text-sm"
                     >
                         <option value="all">All years</option>
                         {allYears.map((year) => (
@@ -151,13 +155,15 @@ function SearchFilterSort({
                     <div className="flex gap-1.5 items-center text-xs">
                         <span className="text-gray-500">Active filters:</span>
                         {searchText && (
-                            <span className="px-2 py-0.5 bg-indigo-600/20 text-indigo-400 rounded">"{searchText}"</span>
+                            <span className="px-2 py-0.5 bg-indigo-500/15 text-indigo-300 rounded-md">
+                                "{searchText}"
+                            </span>
                         )}
                         {minRating > 0 && (
-                            <span className="px-2 py-0.5 bg-indigo-600/20 text-indigo-400 rounded">{minRating}+ ★</span>
+                            <span className="px-2 py-0.5 bg-indigo-500/15 text-indigo-300 rounded-md">{minRating}+ ★</span>
                         )}
                         {selectedYear !== 'all' && (
-                            <span className="px-2 py-0.5 bg-indigo-600/20 text-indigo-400 rounded">{selectedYear}</span>
+                            <span className="px-2 py-0.5 bg-indigo-500/15 text-indigo-300 rounded-md">{selectedYear}</span>
                         )}
                     </div>
                 )}
