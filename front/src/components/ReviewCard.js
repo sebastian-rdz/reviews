@@ -1,46 +1,35 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import StarRating from './StarRating';
+import { dayLabel, posterFallback } from '../lib/format';
 
-// Inline placeholder so a missing poster never triggers an external request / broken image.
-const POSTER_FALLBACK =
-    'data:image/svg+xml;utf8,' +
-    encodeURIComponent(
-        `<svg xmlns="http://www.w3.org/2000/svg" width="96" height="144" viewBox="0 0 96 144">
-            <rect width="96" height="144" fill="#242b3b"/>
-            <path d="M48 58a10 10 0 100 20 10 10 0 000-20zm0 6a4 4 0 110 8 4 4 0 010-8z" fill="#454c5c"/>
-            <text x="48" y="98" font-family="Inter,sans-serif" font-size="9" fill="#626a7d" text-anchor="middle">No poster</text>
-        </svg>`
-    );
-
-function formatDate(iso) {
-    if (!iso) return null;
-    const d = new Date(iso);
-    if (Number.isNaN(d.getTime())) return null;
-    const day = String(d.getDate()).padStart(2, '0');
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const year = d.getFullYear();
-    return `${day}/${month}/${year}`;
-}
-
-export default function ReviewCard({ review }) {
+export default function ReviewCard({ review, showPoster = true }) {
     const m = review.movie || {};
-    const date = formatDate(review.created_at || review.date || null);
+    const watched = dayLabel(review.watched_on) || dayLabel(review.created_at || review.date);
 
     return (
-        <article className="group flex gap-4 rounded-xl border border-gray-700/60 bg-gray-800 p-4 shadow-card transition-colors hover:border-gray-600">
-            <div className="w-20 sm:w-24 flex-shrink-0">
-                <img
-                    src={m.poster_url || POSTER_FALLBACK}
-                    alt={m.name}
-                    className="aspect-[2/3] w-full rounded-lg object-cover ring-1 ring-white/5"
-                    loading="lazy"
-                />
-            </div>
+        <article className="group flex gap-3 rounded-xl border border-gray-700/60 bg-gray-800 p-3 shadow-card transition-colors hover:border-gray-600 sm:gap-4 sm:p-4">
+            {showPoster && (
+                <Link to={m.id ? `/film/${m.id}` : '#'} className="w-16 flex-shrink-0 sm:w-24">
+                    <img
+                        src={m.poster_url || posterFallback()}
+                        alt={m.name}
+                        className="aspect-[2/3] w-full rounded-lg object-cover ring-1 ring-white/5 transition group-hover:ring-indigo-500/40"
+                        loading="lazy"
+                    />
+                </Link>
+            )}
             <div className="min-w-0 flex-1">
-                <div className="flex justify-between items-start gap-4">
+                <div className="flex justify-between items-start gap-2 sm:gap-4">
                     <div className="min-w-0">
-                        <h3 className="font-display text-lg font-semibold leading-tight text-white">
-                            {m.name || '—'}{' '}
+                        <h3 className="font-display text-base font-semibold leading-tight text-white sm:text-lg">
+                            {m.id ? (
+                                <Link to={`/film/${m.id}`} className="hover:text-indigo-300 transition-colors">
+                                    {m.name || '—'}
+                                </Link>
+                            ) : (
+                                m.name || '—'
+                            )}{' '}
                             {m.release_year ? (
                                 <span className="font-sans text-sm font-normal text-gray-400">({m.release_year})</span>
                             ) : null}
@@ -48,18 +37,26 @@ export default function ReviewCard({ review }) {
                         <div className="mt-0.5 text-sm text-gray-400">
                             {m.director ? `Directed by ${m.director}` : 'Director unknown'}
                         </div>
-                        {date && <div className="mt-1 text-xs text-gray-500">Logged {date}</div>}
+                        <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-500">
+                            {watched && <span>Watched {watched}</span>}
+                            {review.rewatch && (
+                                <span className="rounded bg-gray-700/70 px-1.5 py-0.5 text-gray-300">Rewatch</span>
+                            )}
+                            {review.liked && <span className="text-rose-400">♥ Liked</span>}
+                        </div>
                     </div>
                     <div className="flex flex-col items-end flex-shrink-0">
-                        <div className="font-display text-2xl font-bold leading-none text-indigo-400">{review.rating}</div>
+                        <div className="font-display text-xl font-bold leading-none text-indigo-400 sm:text-2xl">
+                            {review.rating}
+                        </div>
                         <div className="mt-1">
-                            <StarRating value={review.rating} size={13} />
+                            <StarRating value={review.rating} size={12} />
                         </div>
                     </div>
                 </div>
-                <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-gray-200">
-                    {review.comment || <span className="italic text-gray-500">No comment</span>}
-                </p>
+                {review.comment ? (
+                    <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-gray-200">{review.comment}</p>
+                ) : null}
             </div>
         </article>
     );
