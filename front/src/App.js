@@ -309,53 +309,63 @@ function App() {
     }
 
     return (
-        <div className="min-h-screen bg-gray-900 text-gray-100">
+        <div className="min-h-screen bg-gray-950 text-gray-100 antialiased">
             <ProfileHeader title="My Reviews" user={user} onOpenForm={openForm} />
 
-            <div className="max-w-4xl mx-auto px-6 py-6">
+            <div className="max-w-4xl mx-auto px-6 py-8">
                 {/* Recent Movies Carousel */}
-                <section className="mb-6">
+                <section className="mb-8">
                     <div
-                        className="flex justify-between items-baseline mb-2 cursor-pointer hover:bg-gray-800 p-2 rounded transition-colors"
+                        className="group -mx-2 flex justify-between items-center mb-1 cursor-pointer rounded-lg px-2 py-1.5 transition-colors hover:bg-gray-800/60"
                         onClick={() => setShowRecentMovies(!showRecentMovies)}
                     >
-                        <h2 className="text-lg font-semibold text-white">Recently watched</h2>
-                        <span className="text-gray-400 text-sm">{showRecentMovies ? '▼' : '▶'}</span>
+                        <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-400 transition-colors group-hover:text-gray-200">
+                            Recently watched
+                        </h2>
+                        <span className="text-gray-500 text-xs transition-colors group-hover:text-gray-300">
+                            {showRecentMovies ? '▼' : '▶'}
+                        </span>
                     </div>
                     {showRecentMovies && <HorizontalCarousel items={recentMovies} />}
                 </section>
 
                 {/* Favorite Movies Carousel */}
-                <section className="mb-6">
+                <section className="mb-8">
                     <div
-                        className="flex justify-between items-baseline mb-2 cursor-pointer hover:bg-gray-800 p-2 rounded transition-colors"
+                        className="group -mx-2 flex justify-between items-center mb-1 cursor-pointer rounded-lg px-2 py-1.5 transition-colors hover:bg-gray-800/60"
                         onClick={() => setShowFavoriteMovies(!showFavoriteMovies)}
                     >
-                        <h2 className="text-lg font-semibold text-white">Favorite films</h2>
-                        <span className="text-gray-400 text-sm">{showFavoriteMovies ? '▼' : '▶'}</span>
+                        <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-400 transition-colors group-hover:text-gray-200">
+                            Favorite films
+                        </h2>
+                        <span className="text-gray-500 text-xs transition-colors group-hover:text-gray-300">
+                            {showFavoriteMovies ? '▼' : '▶'}
+                        </span>
                     </div>
                     {showFavoriteMovies && <HorizontalCarousel items={favoriteMovies} />}
                 </section>
 
                 {/* Form */}
                 {showForm && (
-                    <section className="mb-6 bg-gray-800 p-4 rounded">
-                        <h3 className="text-white font-semibold mb-2">New review</h3>
+                    <section className="mb-8 rounded-xl border border-gray-700/60 bg-gray-800 p-5 shadow-card">
+                        <h3 className="font-display text-lg font-semibold text-white mb-3">New review</h3>
 
                         <div className="mb-3">
-                            <label className="text-sm text-gray-300 block mb-1">Search movie</label>
+                            <label className="text-xs font-semibold uppercase tracking-wide text-gray-400 block mb-1.5">
+                                Search movie
+                            </label>
                             <input
-                                className="w-full px-3 py-2 rounded bg-gray-700 text-white border border-gray-600"
+                                className="w-full px-3 py-2.5 rounded-lg bg-gray-900/60 text-white border border-gray-600 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
                                 value={query}
                                 onChange={(e) => setQuery(e.target.value)}
                                 placeholder="Type title..."
                             />
                             {suggestions.length > 0 && (
-                                <ul className="bg-gray-800 border border-gray-700 mt-2 rounded max-h-44 overflow-auto">
+                                <ul className="bg-gray-900 border border-gray-700 mt-2 rounded-lg max-h-56 overflow-auto shadow-lg">
                                     {suggestions.map((s) => (
                                         <li
                                             key={s.tmdb_id}
-                                            className="p-2 hover:bg-gray-700 cursor-pointer"
+                                            className="px-3 py-2 hover:bg-gray-800 cursor-pointer transition-colors"
                                             onClick={() => handleSelectSuggestion(s)}
                                         >
                                             <div className="text-sm font-medium">{s.title}</div>
@@ -367,7 +377,7 @@ function App() {
                         </div>
 
                         {selectedMovie && (
-                            <div className="mb-3 text-gray-200">
+                            <div className="mb-4 rounded-lg bg-gray-900/50 px-3 py-2.5 text-gray-200">
                                 <div className="font-medium">
                                     {selectedMovie.name}{' '}
                                     {selectedMovie.release_year ? `(${selectedMovie.release_year})` : ''}
@@ -378,39 +388,45 @@ function App() {
 
                         {selectedMovie && (
                             <form onSubmit={handleSubmitReview}>
-                                <div className="mb-3">
-                                    <label className="text-sm text-gray-300 block mb-1">Comment</label>
+                                <div className="mb-4">
+                                    <label className="text-xs font-semibold uppercase tracking-wide text-gray-400 block mb-1.5">
+                                        Comment
+                                    </label>
                                     <textarea
-                                        className="w-full px-3 py-2 rounded bg-gray-700 text-white border border-gray-600"
+                                        className="w-full px-3 py-2.5 rounded-lg bg-gray-900/60 text-white border border-gray-600 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
                                         rows="4"
                                         value={comment}
                                         onChange={(e) => setComment(e.target.value)}
                                     />
                                 </div>
 
-                                <div className="flex gap-4 mb-4">
-                                    <label className="text-sm text-gray-300 block mb-1">Rating</label>
+                                <div className="flex flex-wrap items-center gap-4 mb-5">
+                                    <span className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+                                        Rating
+                                    </span>
                                     <StarInput value={rating} onChange={(v) => setRating(v)} size={26} />
 
-                                    <div className="" />
-                                    <input
-                                        type="checkbox"
-                                        className="w-5 h-5"
-                                        checked={isFavorite}
-                                        onChange={(e) => setIsFavorite(e.target.checked)}
-                                    />
-                                    <label className="ms-0 text-sm font-medium text-gray-900 dark:text-gray-300">
+                                    <label className="flex items-center gap-2 text-sm font-medium text-gray-300 cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            className="w-4 h-4 accent-indigo-500"
+                                            checked={isFavorite}
+                                            onChange={(e) => setIsFavorite(e.target.checked)}
+                                        />
                                         Favorite
                                     </label>
                                 </div>
 
                                 <div className="flex gap-2">
-                                    <button className="px-3 py-2 bg-indigo-600 rounded text-white" type="submit">
+                                    <button
+                                        className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-gray-800"
+                                        type="submit"
+                                    >
                                         Submit
                                     </button>
                                     <button
                                         type="button"
-                                        className="px-3 py-2 bg-gray-700 rounded text-white"
+                                        className="rounded-lg bg-gray-700 px-4 py-2 text-sm font-semibold text-gray-200 transition-colors hover:bg-gray-600"
                                         onClick={() => setShowForm(false)}
                                     >
                                         Cancelar
@@ -419,17 +435,17 @@ function App() {
                             </form>
                         )}
 
-                        {err && <div className="text-red-400 mt-2">{err}</div>}
+                        {err && <div className="text-red-400 text-sm mt-3">{err}</div>}
                     </section>
                 )}
 
                 {/* Search, Filter & Sort controls */}
-                <section className="mb-6 bg-gray-800 p-4 rounded-lg">
+                <section className="mb-6 rounded-xl border border-gray-700/60 bg-gray-800 p-4 shadow-card">
                     <div
-                        className="flex items-center justify-between cursor-pointer"
+                        className="group flex items-center justify-between cursor-pointer"
                         onClick={() => setShowFilters(!showFilters)}
                     >
-                        <h3 className="text-white font-semibold text-lg">Search & Filter</h3>
+                        <h3 className="font-display text-base font-semibold text-white">Search &amp; Filter</h3>
                         <div className="flex items-center gap-2">
                             {(searchText || minRating > 0 || selectedYear !== 'all' || sortBy !== 'newest') && (
                                 <button
@@ -438,12 +454,14 @@ function App() {
                                         clearFilters();
                                         setSortBy('newest');
                                     }}
-                                    className="text-xs px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded text-gray-300 transition-colors"
+                                    className="text-xs px-3 py-1.5 bg-gray-700/60 hover:bg-gray-700 hover:text-white rounded-lg text-gray-300 transition-colors"
                                 >
                                     Reset all
                                 </button>
                             )}
-                            <span className="text-gray-400 text-sm">{showFilters ? '▼' : '▶'}</span>
+                            <span className="text-gray-500 text-xs transition-colors group-hover:text-gray-300">
+                                {showFilters ? '▼' : '▶'}
+                            </span>
                         </div>
                     </div>
 
@@ -474,7 +492,7 @@ function App() {
                             <select
                                 value={itemsPerPage}
                                 onChange={(e) => changeItemsPerPage(e.target.value)}
-                                className="px-3 py-1.5 rounded bg-gray-800 text-white border border-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                                className="px-3 py-1.5 rounded-lg bg-gray-800 text-white border border-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
                             >
                                 <option value="10">10 per page</option>
                                 <option value="20">25 per page</option>
@@ -494,8 +512,21 @@ function App() {
                 {/* Reviews list */}
                 <section>
                     {loading && (
-                        <div className="flex justify-center items-center py-12">
-                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500"></div>
+                        <div className="space-y-4 mt-4">
+                            {Array.from({ length: 4 }).map((_, i) => (
+                                <div
+                                    key={i}
+                                    className="flex gap-4 rounded-xl border border-gray-700/60 bg-gray-800 p-4"
+                                >
+                                    <div className="skeleton aspect-[2/3] w-20 sm:w-24 flex-shrink-0 rounded-lg" />
+                                    <div className="flex-1 space-y-2.5 py-1">
+                                        <div className="skeleton h-4 w-2/3" />
+                                        <div className="skeleton h-3 w-1/3" />
+                                        <div className="skeleton h-3 w-full mt-4" />
+                                        <div className="skeleton h-3 w-5/6" />
+                                    </div>
+                                </div>
+                            ))}
                         </div>
                     )}
 
@@ -503,16 +534,21 @@ function App() {
                         paginationMeta.total === 0 &&
                         !searchText &&
                         minRating === 0 &&
-                        selectedYear === 'all' && <div className="text-gray-400 text-center py-8">No reviews yet.</div>}
+                        selectedYear === 'all' && (
+                            <div className="rounded-xl border border-dashed border-gray-700 py-12 text-center">
+                                <div className="text-3xl mb-2">🎬</div>
+                                <div className="text-gray-400">No reviews yet.</div>
+                            </div>
+                        )}
 
                     {!loading &&
                         paginationMeta.total === 0 &&
                         (searchText || minRating > 0 || selectedYear !== 'all') && (
-                            <div className="text-center py-8">
-                                <div className="text-gray-400 mb-2">No reviews match your filters</div>
+                            <div className="rounded-xl border border-dashed border-gray-700 py-12 text-center">
+                                <div className="text-gray-400 mb-3">No reviews match your filters</div>
                                 <button
                                     onClick={clearFilters}
-                                    className="text-sm px-3 py-1 bg-indigo-600 hover:bg-indigo-700 rounded text-white"
+                                    className="text-sm px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-white font-semibold transition-colors"
                                 >
                                     Clear filters
                                 </button>
@@ -534,10 +570,10 @@ function App() {
                                     <button
                                         onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                                         disabled={currentPage === 1}
-                                        className={`px-3 py-2 rounded transition-colors ${
+                                        className={`px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${
                                             currentPage === 1
-                                                ? 'bg-gray-800 text-gray-600 cursor-not-allowed'
-                                                : 'bg-gray-800 text-white hover:bg-gray-700'
+                                                ? "border-gray-800 bg-gray-800/50 text-gray-600 cursor-not-allowed"
+                                                : "border-gray-700 bg-gray-800 text-white hover:bg-gray-700"
                                         }`}
                                     >
                                         ← Previous
@@ -550,7 +586,7 @@ function App() {
                                             <>
                                                 <button
                                                     onClick={() => setCurrentPage(1)}
-                                                    className="px-3 py-2 rounded bg-gray-800 text-white hover:bg-gray-700 transition-colors"
+                                                    className="px-3 py-2 rounded-lg border border-gray-700 bg-gray-800 text-sm font-medium text-white hover:bg-gray-700 transition-colors"
                                                 >
                                                     1
                                                 </button>
@@ -575,10 +611,10 @@ function App() {
                                                 <button
                                                     key={page}
                                                     onClick={() => setCurrentPage(page)}
-                                                    className={`px-3 py-2 rounded transition-colors ${
+                                                    className={`px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${
                                                         currentPage === page
-                                                            ? 'bg-indigo-600 text-white font-semibold'
-                                                            : 'bg-gray-800 text-white hover:bg-gray-700'
+                                                            ? 'border-indigo-500 bg-indigo-600 text-white font-semibold'
+                                                            : 'border-gray-700 bg-gray-800 text-white hover:bg-gray-700'
                                                     }`}
                                                 >
                                                     {page}
@@ -593,7 +629,7 @@ function App() {
                                                 )}
                                                 <button
                                                     onClick={() => setCurrentPage(paginationMeta.last_page)}
-                                                    className="px-3 py-2 rounded bg-gray-800 text-white hover:bg-gray-700 transition-colors"
+                                                    className="px-3 py-2 rounded-lg border border-gray-700 bg-gray-800 text-sm font-medium text-white hover:bg-gray-700 transition-colors"
                                                 >
                                                     {paginationMeta.last_page}
                                                 </button>
@@ -605,10 +641,10 @@ function App() {
                                     <button
                                         onClick={() => setCurrentPage((p) => Math.min(paginationMeta.last_page, p + 1))}
                                         disabled={currentPage === paginationMeta.last_page}
-                                        className={`px-3 py-2 rounded transition-colors ${
+                                        className={`px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${
                                             currentPage === paginationMeta.last_page
-                                                ? 'bg-gray-800 text-gray-600 cursor-not-allowed'
-                                                : 'bg-gray-800 text-white hover:bg-gray-700'
+                                                ? 'border-gray-800 bg-gray-800/50 text-gray-600 cursor-not-allowed'
+                                                : 'border-gray-700 bg-gray-800 text-white hover:bg-gray-700'
                                         }`}
                                     >
                                         Next →
@@ -639,24 +675,33 @@ function App() {
             </div>
 
             {/* Info footer */}
-            <footer className="py-4 text-center">
-                <button className="text-sm text-gray-400 hover:text-white" onClick={handleLogout}>
-                    2025
+            <footer className="mt-8 border-t border-gray-800 py-6 text-center">
+                <button
+                    className="text-sm text-gray-500 transition-colors hover:text-gray-300"
+                    onClick={handleLogout}
+                >
+                    {new Date().getFullYear()}
                 </button>
-                &nbsp;·&nbsp;
-                <button className="text-sm text-gray-400 hover:text-white" onClick={() => setShowLoginModal(true)}>
+                <span className="mx-2 text-gray-700">·</span>
+                <button
+                    className="text-sm text-gray-500 transition-colors hover:text-gray-300"
+                    onClick={() => setShowLoginModal(true)}
+                >
                     Sebastian Rodriguez
                 </button>
             </footer>
 
             {/* Login Modal */}
             {showLoginModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center">
-                    <div className="absolute inset-0 bg-black opacity-60" onClick={() => setShowLoginModal(false)} />
-                    <div className="relative bg-gray-800 text-white rounded-lg p-6 w-full max-w-md z-10">
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div
+                        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+                        onClick={() => setShowLoginModal(false)}
+                    />
+                    <div className="relative z-10 w-full max-w-sm rounded-xl border border-gray-700/60 bg-gray-800 p-6 text-white shadow-card-hover">
                         <form onSubmit={handleLogin} className="space-y-3">
                             <input
-                                className="w-full px-3 py-2 rounded bg-gray-700 text-white border border-gray-600"
+                                className="w-full px-3 py-2.5 rounded-lg bg-gray-900/60 text-white border border-gray-600 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
                                 placeholder="password"
                                 type="password"
                                 value={password}
@@ -664,12 +709,15 @@ function App() {
                                 autoFocus
                             />
                             <div className="flex justify-end gap-2">
-                                <button type="submit" className="px-3 py-2 bg-indigo-600 rounded">
+                                <button
+                                    type="submit"
+                                    className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-indigo-500"
+                                >
                                     Login
                                 </button>
                             </div>
                         </form>
-                        {err && <div className="text-red-400 mt-3">{err}</div>}
+                        {err && <div className="text-red-400 text-sm mt-3">{err}</div>}
                     </div>
                 </div>
             )}
